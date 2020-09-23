@@ -4,8 +4,6 @@ Functional programming (FP) provides many advantages, and its popularity has bee
 
 Examples are presented in JavaScript (ES2015). [Why JavaScript?](https://github.com/hemanth/functional-programming-jargon/wiki/Why-JavaScript%3F)
 
-*This is a [WIP](https://github.com/hemanth/functional-programming-jargon/issues/20); please feel free to send a PR ;)*
-
 Where applicable, this document uses terms defined in the [Fantasy Land spec](https://github.com/fantasyland/fantasy-land)
 
 __Translations__
@@ -13,8 +11,11 @@ __Translations__
 * [Spanish](https://github.com/idcmardelplata/functional-programming-jargon/tree/master)
 * [Chinese](https://github.com/shfshanyue/fp-jargon-zh)
 * [Bahasa Indonesia](https://github.com/wisn/jargon-pemrograman-fungsional)
+* [Python World](https://github.com/jmesyou/functional-programming-jargon.py)
 * [Scala World](https://github.com/ikhoon/functional-programming-jargon.scala)
+* [Rust World](https://github.com/JasonShin/functional-programming-jargon.rs)
 * [Korean](https://github.com/sphilee/functional-programming-jargon)
+* [Haskell Turkish](https://github.com/mrtkp9993/functional-programming-jargon)
 
 __Table of Contents__
 <!-- RM(noparent,notop) -->
@@ -54,6 +55,12 @@ __Table of Contents__
 * [Morphism](#morphism)
   * [Endomorphism](#endomorphism)
   * [Isomorphism](#isomorphism)
+  * [Homomorphism](#homomorphism)
+  * [Catamorphism](#catamorphism)
+  * [Anamorphism](#anamorphism)
+  * [Hylomorphism](#hylomorphism)
+  * [Paramorphism](#paramorphism)
+  * [Apomorphism](#apomorphism)
 * [Setoid](#setoid)
 * [Semigroup](#semigroup)
 * [Foldable](#foldable)
@@ -63,6 +70,8 @@ __Table of Contents__
   * [Sum type](#sum-type)
   * [Product type](#product-type)
 * [Option](#option)
+* [Function](#function)
+* [Partial function](#partial-function)
 * [Functional Programming Libraries in JavaScript](#functional-programming-libraries-in-javascript)
 
 
@@ -103,40 +112,33 @@ filter(is(Number), [0, '1', 2, null]) // [0, 2]
 
 ## Closure
 
-A closure is a scope which retains variables available to a function when it's created. This is important for
-[partial application](#partial-application) to work.
+A closure is a way of accessing a variable outside its scope.
+Formally, a closure is a technique for implementing lexically scoped named binding. It is a way of storing a function with an environment.
+
+A closure is a scope which captures local variables of a function for access even after the execution has moved out of the block in which it is defined.
+ie. they allow referencing a scope after the block in which the variables were declared has finished executing.
 
 
 ```js
-const addTo = (x) => {
-  return (y) => {
-    return x + y
-  }
-}
+const addTo = x => y => x + y;
+var addToFive = addTo(5);
+addToFive(3); //returns 8
 ```
+The function ```addTo()``` returns a function(internally called ```add()```), lets store it in a variable called ```addToFive``` with a curried call having parameter 5.
 
-`addTo` can be called with a number to get back a function with a baked-in `x`.
+Ideally, when the function ```addTo``` finishes execution, its scope, with local variables add, x, y should not be accessible. But, it returns 8 on calling ```addToFive()```. This means that the state of the function ```addTo``` is saved even after the block of code has finished executing, otherwise there is no way of knowing that ```addTo``` was called as ```addTo(5)``` and the value of x was set to 5.
 
-```js
-var addToFive = addTo(5)
-```
+Lexical scoping is the reason why it is able to find the values of x and add - the private variables of the parent which has finished executing. This value is called a Closure.
 
-In this case the `x` is retained in `addToFive`'s closure with the value `5`. `addToFive` can then be called with the `y`
-to get back the desired number.
+The stack along with the lexical scope of the function is stored in form of reference to the parent. This prevents the closure and the underlying variables from being garbage collected(since there is at least one live reference to it).
 
-```js
-addToFive(3) // => 8
-```
+Lambda Vs Closure: A lambda is essentially a function that is defined inline rather than the standard method of declaring functions. Lambdas can frequently be passed around as objects.
 
-This works because variables that are in parent scopes are not garbage-collected as long as the function itself is retained.
+A closure is a function that encloses its surrounding state by referencing fields external to its body. The enclosed state remains across invocations of the closure.
 
-Closures are commonly used in event handlers so that they still have access to variables defined in their parents when they
-are eventually called.
-
-__Further reading__
+__Further reading/Sources__
 * [Lambda Vs Closure](http://stackoverflow.com/questions/220658/what-is-the-difference-between-a-closure-and-a-lambda)
-* [How do JavaScript Closures Work?](http://stackoverflow.com/questions/111102/how-do-javascript-closures-work)
-
+* [JavaScript Closures highly voted discussion](http://stackoverflow.com/questions/111102/how-do-javascript-closures-work)
 
 ## Partial Application
 
@@ -340,16 +342,16 @@ const predicate = (a) => a > 2
 A contract specifies the obligations and guarantees of the behavior from a function or expression at runtime. This acts as a set of rules that are expected from the input and output of a function or expression, and errors are generally reported whenever a contract is violated.
 
 ```js
-// Define our contract : int -> int
+// Define our contract : int -> boolean
 const contract = (input) => {
   if (typeof input === 'number') return true
-  throw new Error('Contract violated: expected int -> int')
+  throw new Error('Contract violated: expected int -> boolean')
 }
 
 const addOne = (num) => contract(num) && num + 1
 
 addOne(2) // 3
-addOne('some string') // Contract violated: expected int -> int
+addOne('some string') // Contract violated: expected int -> boolean
 ```
 
 ## Category
@@ -601,7 +603,7 @@ randIter.next() // Each execution gives a random value, expression is evaluated 
 
 ## Monoid
 
-An object with a function that "combines" that object with another of the same type.
+An object with a function that "combines" that object with another of the same type (semigroup) which has an "identity" value.
 
 One simple monoid is the addition of numbers:
 
@@ -610,11 +612,13 @@ One simple monoid is the addition of numbers:
 ```
 In this case number is the object and `+` is the function.
 
-An "identity" value must also exist that when combined with a value doesn't change it.
+When any value is combined with the "identity" value the result must be the original value. The identity must also be commutative.
 
 The identity value for addition is `0`.
 ```js
 1 + 0 // 1
+0 + 1 // 1
+1 + 0 === 0 + 1
 ```
 
 It's also required that the grouping of operations will not affect the result (associativity):
@@ -635,15 +639,10 @@ The identity value is empty array `[]`
 ;[1, 2].concat([]) // [1, 2]
 ```
 
-If identity and compose functions are provided, functions themselves form a monoid:
+As a counterexample, subtraction does not form a monoid because there is no commutative identity value:
 
 ```js
-const identity = (a) => a
-const compose = (f, g) => (x) => f(g(x))
-```
-`foo` is any function that takes one argument.
-```
-compose(foo, identity) ≍ compose(identity, foo) ≍ foo
+0 - 4 === 4 - 0 // false
 ```
 
 ## Monad
@@ -760,7 +759,85 @@ coordsToPair(pairToCoords([1, 2])) // [1, 2]
 pairToCoords(coordsToPair({x: 1, y: 2})) // {x: 1, y: 2}
 ```
 
+### Homomorphism
 
+A homomorphism is just a structure preserving map. In fact, a functor is just a homomorphism between categories as it preserves the original category's structure under the mapping.
+
+```js
+A.of(f).ap(A.of(x)) == A.of(f(x))
+
+Either.of(_.toUpper).ap(Either.of("oreos")) == Either.of(_.toUpper("oreos"))
+```
+
+### Catamorphism
+
+A `reduceRight` function that applies a function against an accumulator and each value of the array (from right-to-left) to reduce it to a single value.
+
+```js
+const sum = xs => xs.reduceRight((acc, x) => acc + x, 0)
+
+sum([1, 2, 3, 4, 5]) // 15
+```
+
+### Anamorphism
+
+An `unfold` function. An `unfold` is the opposite of `fold` (`reduce`). It generates a list from a single value.
+
+```js
+const unfold = (f, seed) => {
+  function go(f, seed, acc) {
+    const res = f(seed);
+    return res ? go(f, res[1], acc.concat([res[0]])) : acc;
+  }
+  return go(f, seed, [])
+}
+```
+
+```js
+const countDown = n => unfold((n) => {
+  return n <= 0 ? undefined : [n, n - 1]
+}, n)
+
+countDown(5) // [5, 4, 3, 2, 1]
+```
+
+### Hylomorphism
+
+The combination of anamorphism and catamorphism.
+
+### Paramorphism
+
+A function just like `reduceRight`. However, there's a difference:
+
+In paramorphism, your reducer's arguments are the current value, the reduction of all previous values, and the list of values that formed that reduction.
+
+```js
+// Obviously not safe for lists containing `undefined`,
+// but good enough to make the point.
+const para = (reducer, accumulator, elements) => {
+  if (elements.length === 0)
+    return accumulator
+
+  const head = elements[0]
+  const tail = elements.slice(1)
+
+  return reducer(head, tail, para(reducer, accumulator, tail))
+}
+
+const suffixes = list => para(
+  (x, xs, suffxs) => [xs, ... suffxs],
+  [],
+  list
+)
+
+suffixes([1, 2, 3, 4, 5]) // [[2, 3, 4, 5], [3, 4, 5], [4, 5], [5], []]
+```
+
+The third parameter in the reducer (in the above example, `[x, ... xs]`) is kind of like having a history of what got you to your current acc value.
+
+### Apomorphism
+
+it's the opposite of paramorphism, just as anamorphism is the opposite of catamorphism. Whereas with paramorphism, you combine with access to the accumulator and what has been accumulated, apomorphism lets you `unfold` with the potential to return early.
 
 ## Setoid
 
@@ -796,7 +873,7 @@ An object that has a `concat` function that combines it with another object of t
 
 ## Foldable
 
-An object that has a `reduce` function that can transform that object into some other type.
+An object that has a `reduce` function that applies a function against an accumulator and each element in the array (from left to right) to reduce it to a single value.
 
 ```js
 const sum = (list) => list.reduce((acc, val) => acc + val, 0)
@@ -971,10 +1048,87 @@ getNestedPrice({item: {price: 9.99}}) // Some(9.99)
 
 `Option` is also known as `Maybe`. `Some` is sometimes called `Just`. `None` is sometimes called `Nothing`.
 
+## Function
+A **function** `f :: A => B` is an expression - often called arrow or lambda expression - with **exactly one (immutable)** parameter of type `A` and **exactly one** return value of type `B`. That value depends entirely on the argument, making functions context-independant, or [referentially transparent](#referential-transparency). What is implied here is that a function must not produce any hidden [side effects](#side-effects) - a function is always [pure](#purity), by definition. These properties make functions pleasant to work with: they are entirely deterministic and therefore predictable. Functions enable working with code as data, abstracting over behaviour:
+
+```js
+// times2 :: Number -> Number
+const times2 = n => n * 2
+
+[1, 2, 3].map(times2) // [2, 4, 6]
+```
+
+## Partial function
+A partial function is a [function](#function) which is not defined for all arguments - it might return an unexpected result or may never terminate. Partial functions add cognitive overhead, they are harder to reason about and can lead to runtime errors. Some examples:
+```js
+// example 1: sum of the list
+// sum :: [Number] -> Number
+const sum = arr => arr.reduce((a, b) => a + b)
+sum([1, 2, 3]) // 6
+sum([]) // TypeError: Reduce of empty array with no initial value
+
+// example 2: get the first item in list
+// first :: [A] -> A
+const first = a => a[0]
+first([42]) // 42
+first([]) // undefined
+//or even worse:
+first([[42]])[0] // 42
+first([])[0] // Uncaught TypeError: Cannot read property '0' of undefined
+
+// example 3: repeat function N times
+// times :: Number -> (Number -> Number) -> Number
+const times = n => fn => n && (fn(n), times(n - 1)(fn))
+times(3)(console.log)
+// 3
+// 2
+// 1
+times(-1)(console.log)
+// RangeError: Maximum call stack size exceeded
+```
+
+### Dealing with partial functions
+Partial functions are dangerous as they need to be treated with great caution. You might get an unexpected (wrong) result or run into runtime errors. Sometimes a partial function might not return at all. Being aware of and treating all these edge cases accordingly can become very tedious.
+Fortunately a partial function can be converted to a regular (or total) one. We can provide default values or use guards to deal with inputs for which the (previously) partial function is undefined. Utilizing the [`Option`](#Option) type, we can yield either `Some(value)` or `None` where we would otherwise have behaved unexpectedly:
+```js
+// example 1: sum of the list
+// we can provide default value so it will always return result
+// sum :: [Number] -> Number
+const sum = arr => arr.reduce((a, b) => a + b, 0)
+sum([1, 2, 3]) // 6
+sum([]) // 0
+
+// example 2: get the first item in list
+// change result to Option
+// first :: [A] -> Option A
+const first = a => a.length ? Some(a[0]) : None()
+first([42]).map(a => console.log(a)) // 42
+first([]).map(a => console.log(a)) // console.log won't execute at all
+//our previous worst case
+first([[42]]).map(a => console.log(a[0])) // 42
+first([]).map(a => console.log(a[0])) // won't execte, so we won't have error here
+// more of that, you will know by function return type (Option)
+// that you should use `.map` method to access the data and you will never forget
+// to check your input because such check become built-in into the function
+
+// example 3: repeat function N times
+// we should make function always terminate by changing conditions:
+// times :: Number -> (Number -> Number) -> Number
+const times = n => fn => n > 0 && (fn(n), times(n - 1)(fn))
+times(3)(console.log)
+// 3
+// 2
+// 1
+times(-1)(console.log)
+// won't execute anything
+```
+Making your partial functions total ones, these kinds of runtime errors can be prevented. Always returning a value will also make for code that is both easier to maintain as well as to reason about.
+
 ## Functional Programming Libraries in JavaScript
 
 * [mori](https://github.com/swannodette/mori)
 * [Immutable](https://github.com/facebook/immutable-js/)
+* [Immer](https://github.com/mweststrate/immer)
 * [Ramda](https://github.com/ramda/ramda)
 * [ramda-adjunct](https://github.com/char0n/ramda-adjunct)
 * [Folktale](http://folktale.origamitower.com/)
@@ -985,6 +1139,9 @@ getNestedPrice({item: {price: 9.99}}) // Some(9.99)
 * [maryamyriameliamurphies.js](https://github.com/sjsyrek/maryamyriameliamurphies.js)
 * [Haskell in ES6](https://github.com/casualjavascript/haskell-in-es6)
 * [Sanctuary](https://github.com/sanctuary-js/sanctuary)
+* [Crocks](https://github.com/evilsoft/crocks)
+* [Fluture](https://github.com/fluture-js/Fluture)
+* [fp-ts](https://github.com/gcanti/fp-ts)
 
 ---
 
